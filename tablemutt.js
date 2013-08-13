@@ -189,7 +189,7 @@
                 .append("span")
                 .classed("tablemutt info", true);
         }
-    }
+    };
 
     TableMutt.prototype._selectionOrFallback = function (selector, fallback) {
         if (selector === null) {
@@ -201,7 +201,7 @@
         } else {
             return fallback;
         }
-    }
+    };
 
     TableMutt.prototype._makeStringSorter = function (direction, stringify) {
         if (direction === ASCENDING) {
@@ -349,9 +349,9 @@
         if (this.options.textFilter) {
             this.generateSearchIndex();
         }
-    }
+    };
 
-    TableMutt.prototype.isEmpty = function () { return (this._displayRows.length === 0); }
+    TableMutt.prototype.isEmpty = function () { return (this._displayRows.length === 0); };
 
     TableMutt.prototype.load = function (rows) {
         var self = this;
@@ -461,7 +461,7 @@
             this._filteredData.length
         );
         return {from: from, to: to};
-    }
+    };
 
     TableMutt.prototype._pageForRow = function (key) {
         var self = this;
@@ -478,7 +478,7 @@
         } else {
             return 0;
         }
-    }
+    };
 
     TableMutt.prototype.hidePagination = function () {
         this.pagination.selectAll("li")
@@ -547,7 +547,7 @@
             }
         });
         return currentIdx;
-    }
+    };
 
     TableMutt.prototype.getSelectedRow = function () {
         if (this.selectedRow) {
@@ -555,7 +555,7 @@
         } else {
             return null;
         }
-    }
+    };
 
     TableMutt.prototype.toggleRow = function (key) {
         if (key == this.selectedRow) {
@@ -563,7 +563,7 @@
         } else {
             this.selectRow(key);
         }
-    }
+    };
 
     TableMutt.prototype.selectRow = function (key) {
         var self = this;
@@ -579,7 +579,7 @@
                 self.options.rowSelectedCallback(this, d);
             });
         }
-    }
+    };
 
     TableMutt.prototype._deselectIfMissing = function () {
         // if row disappears in an update or pagination change, we
@@ -587,7 +587,7 @@
         if (this.rowKeyToIndex(this.selectedRow) === null) {
             this.deselectRow();
         }
-    }
+    };
 
     TableMutt.prototype.deselectRow = function (nextSelectionKey) {
         var self = this;
@@ -609,7 +609,7 @@
             }
         }
         this.selectedRow = null;
-    }
+    };
 
     TableMutt.prototype.selectNextRow = function () {
         var self = this;
@@ -648,7 +648,7 @@
             toSelect = this._displayRows[0];
             this.selectRow(this.options.keyFunction(toSelect));
         }
-    }
+    };
 
     TableMutt.prototype.selectPreviousRow = function () {
         var self = this;
@@ -686,7 +686,7 @@
             toSelect = this._displayRows[this._displayRows.length - 1];
             this.selectRow(this.options.keyFunction(toSelect));
         }
-    }
+    };
 
     TableMutt.prototype.initTextFilter = function () {
         var self = this;
@@ -838,7 +838,7 @@
             .on("click", function (d, i) {
                 d3.event.stopPropagation();
             });
-    }
+    };
     
     TableMutt.prototype.updateDisplay = function () {
         var self = this;
@@ -902,7 +902,7 @@
         }
                 
         this.info.text(message);
-    } 
+    };
     
     window.TableMutt = TableMutt;
 }());
