@@ -75,9 +75,36 @@
       font-style: italic;
       color: #888;
     }
+    .column_host {
+      width: 15em;
+    }
     
     .column_tags {
-      
+      width: 40%;
+    }
+    
+    .column_tags ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    
+    .column_tags li {
+      display: inline;
+      margin: 0 0.25em;
+    }
+    
+    
+    table.tablemutt {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1em;
+      table-layout: fixed;
+    }
+    
+    .tablemutt th {
+      padding: 5px;
+      border-top: 1px solid black;
+      border-bottom: 1px solid black;
     }
     </style>
   </head>
@@ -98,7 +125,8 @@
     <p>
       <strong>As of this writing, the widget depends on
       <a href="http://underscorejs.org/">Underscore.js</a> and
-      <a href="http://d3js.org/">d3.js</a>.</strong>
+      <a href="http://d3js.org/">d3.js</a>.</strong> It has been tested with 
+      Underscore.js v. 1.5.1 and d3.js v.3, but may work with older versions.
     </p>
     <p>
       The below example loads a &approx; 2 MB JSON file with 5000 rows
