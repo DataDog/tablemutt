@@ -2,109 +2,25 @@
 <html>
   <head>
     <title>TableMutt from Datadog</title>
+    <link rel="stylesheet" href="/common.css" type="text/css" media="screen" title="Common Page Styles" charset="utf-8">
+    <link rel="stylesheet" href="/tablemutt.css" type="text/css" media="screen" title="TableMutt styles" charset="utf-8">
     <style type="text/css" media="screen">
-    /* 
-     * NOTE: These aren't required TableMutt styles!
-     * The only required styles are in tablemutt.css.
-     * These are just here for demonstration purposes.
-     */
-    body {
-      font-family: 'Helvetica Neue', Helvetica, sans-serif;
-      font-size: 16px;
-    }
-    .tablemutt.pagination {
-      padding: 0;
-      float: right;
-    }
-    .tablemutt.pagination li {
-      cursor: pointer;
-      display: inline-block;
-      padding: 5px;
-      font-size: 13px;
-      border-radius: 30px;
-      background: #3399cc;
-      color: white;
-      height: 25px;
-      line-height: 25px;
-      width: 25px;
-      text-align: center;
-      margin: 5px;
-    }
-    .tablemutt.pagination li.active {
-      background: white;
-      color: #3399cc;
-      border-width: 2px;
-      border-color: #3399cc;
-      border-style: solid;
-    }
-    .tablemutt.pagination .navigate.disabled {
-      background: #abb5ba;
-    }
-    table.striped tbody>tr:nth-child(even) {
-      background: #f9f9f9;
-    }
-    table.striped tbody>tr>td.no_rows_message {
-      text-align: center;
-      color: #666666;
-    }
-    .tablemutt .textfilter {
-      padding: 4px 12px;
-      width: 200px;
-      -webkit-border-radius: 12px;
-      -moz-border-radius: 12px;
-      -ms-border-radius: 12px;
-      -o-border-radius: 12px;
-      border-radius: 12px;
-      -webkit-border-radius: 12px;
-      -moz-border-radius: 12px;
-      -ms-border-radius: 12px;
-      -o-border-radius: 12px;
-      border-radius: 12px;
-      -webkit-border-radius: 12px;
-      -moz-border-radius: 12px;
-      -ms-border-radius: 12px;
-      -o-border-radius: 12px;
-      border-radius: 12px;
-    }
-    .tablemutt .no_rows_message {
-      text-align: center;
-    }
-    
-    /* page styles */
-    p.aside {
-      font-style: italic;
-      color: #888;
-    }
     .column_host {
       width: 15em;
     }
-    
+
     .column_tags {
       width: 40%;
     }
-    
+
     .column_tags ul {
       list-style-type: none;
       padding: 0;
     }
-    
+
     .column_tags li {
       display: inline;
       margin: 0 0.25em;
-    }
-    
-    
-    table.tablemutt {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 1em;
-      table-layout: fixed;
-    }
-    
-    .tablemutt th {
-      padding: 5px;
-      border-top: 1px solid black;
-      border-bottom: 1px solid black;
     }
     </style>
   </head>
@@ -126,7 +42,7 @@
       <strong>As of this writing, the widget depends on
       <a href="http://underscorejs.org/">Underscore.js</a> and
       <a href="http://d3js.org/">d3.js</a>.</strong> It has been tested with 
-      Underscore.js v. 1.5.1 and d3.js v.3, but may work with older versions.
+      Underscore.js v. 1.4.4 and d3.js v.3, but may work with older versions.
     </p>
     <p>
       The below example loads a &approx; 2 MB JSON file with 5000 rows
@@ -139,7 +55,7 @@
     <div id="timer"></div>
     <div id="demo_tablemutt"></div>
     
-    <!-- Dependencies: Underscore.js, d3 -->
+    <!-- Dependencies: Underscore.js >= 1.4.4, d3 v3 -->
     <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.4.4/underscore-min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/d3/3.2.2/d3.v3.min.js"></script>
     
@@ -149,7 +65,12 @@
     <script src="/tablemutt.js" type="text/javascript" charset="utf-8"></script>
     <script type="text/javascript" charset="utf-8">
     var columns = [
-      {id: "host"},
+      {
+        id: "host",
+        format: function (transformed) {
+          return '<a href="http://' + transformed + '">' + transformed + '</a>';
+        }
+      },
       {
         id: "cpu",
         name: "CPU %",
