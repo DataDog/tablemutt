@@ -12,6 +12,7 @@
         this.options = _.defaults(options, {
             paginateBy: 50,
             showPages: true, // show one list item for each page
+            maxPageLinks: 10, // max number of page links shown
             showInfo: true, // 'showing X of Y' info
             sortOrder: [], // e.g. ["columnId", "-columnId2"]
             textFilter: true, // generates index on load and update
@@ -26,6 +27,7 @@
 
             previousButtonContent: "&larr;", // contents of <li> for page nav
             nextButtonContent: "&rarr;",
+            skippedPageContent: "&hellip;", // contents of skipped page placeholder
 
             loadingContent: '<div class="tablemutt loading"></div>',
             emptyContent: 'No records found',
@@ -39,6 +41,9 @@
             keyFunction: null // create a unique id for a row (required to
                               // persist selected row state across updates)
         });
+
+        // Enforce minimums
+        this.options.maxPageLinks = Math.max(this.options.maxPageLinks, 4);
 
         // normalize format of cols
         _.each(columns, function (element, index, list) {
@@ -435,6 +440,23 @@
         this.pageNext = this.pagination.append("li")
             .classed("tablemutt next navigate", true)
             .html(this.options.nextButtonContent);
+
+
+        // - Insert the placeholders for skipped pages
+        if(this.options.showPages === true) {
+            var pagelist = this.pagination[0][0];
+            var pagelinks = this.pagination.selectAll('li:not(.navigate)')[0];
+
+            this.lowSkip = d3.select(document.createElement('li'))
+                            .classed('skipped_page skipped_low', true)
+                            .html(this.options.skippedPageContent);
+            pagelist.insertBefore(this.lowSkip[0][0], pagelinks[0].nextSibling);
+
+            this.highSkip = d3.select(document.createElement('li'))
+                            .classed('skipped_page skipped_high', true)
+                            .html(this.options.skippedPageContent);
+            pagelist.insertBefore(this.highSkip[0][0], pagelinks[this.pages.length - 1]);
+        }
         
         if (this.pages.length !== 1) {
             this.pageNext
@@ -498,11 +520,34 @@
     };
 
     TableMutt.prototype.showPage = function (pagenumber) {
-        var self = this;
+        var self = this,
+            lastPage = this.pages.length - 1,
+            maxPageLinks = this.options.maxPageLinks,
+            pageSpan = maxPageLinks - 1,
+            minlink,
+            maxlink;
+
         if (!this.options.paginateBy) {
             this._displayRows = this._filteredData;
             this.updateDisplay();
             return;
+        }
+
+        if(this.options.showPages === true) {
+            maxlink = Math.floor(pagenumber + maxPageLinks/2);
+            minlink = maxlink - (pageSpan);
+            // adjust for ends of range
+            if(minlink < 0) {
+                minlink = 0;
+                maxlink = pageSpan;
+            }
+            if(maxlink > lastPage) {
+                maxlink = lastPage;
+                minlink = maxlink - pageSpan;
+            }
+            // show/hide skipped page indicators
+            this.lowSkip.classed('hidden', minlink <= 1);
+            this.highSkip.classed('hidden', maxlink >= lastPage - 1);
         }
 
         this._currentPage = pagenumber;
@@ -512,6 +557,11 @@
         this._displayRows = this._filteredData.slice(from, to);
         this.pagination.selectAll(".pagenumber").classed("active", function (d, i) {
             return (d === pagenumber);
+        }).classed('hidden', function(d, i){
+            if(self.options.showPages !== true) {return}
+            // hide if outside of minlink - maxlink range
+            // always show first and last page
+            return ( (i < minlink && i !== 0) || (i > maxlink && i !== lastPage));
         });
         // disable Next if last page
         this.pageNext.classed("disabled", this._currentPage === (this.pages.length - 1));

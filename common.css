@@ -27,7 +27,7 @@ body > h1 {
   color: white;
   height: 25px;
   line-height: 25px;
-  width: 25px;
+  min-width: 25px;
   text-align: center;
   margin: 5px;
 }
@@ -37,6 +37,13 @@ body > h1 {
   border-width: 2px;
   border-color: #3399cc;
   border-style: solid;
+}
+.tablemutt.pagination li.hidden {
+  display: none;
+}
+.tablemutt.pagination li.skipped_page {
+  background: #eee;
+  color: #ccc;
 }
 .tablemutt.pagination .navigate.disabled {
   background: #abb5ba;
