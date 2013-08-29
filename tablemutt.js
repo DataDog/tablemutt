@@ -558,7 +558,7 @@
         this.pagination.selectAll(".pagenumber").classed("active", function (d, i) {
             return (d === pagenumber);
         }).classed('hidden', function(d, i){
-            if(self.options.showPages !== true) {return}
+            if(self.options.showPages !== true) {return;}
             // hide if outside of minlink - maxlink range
             // always show first and last page
             return ( (i < minlink && i !== 0) || (i > maxlink && i !== lastPage));
