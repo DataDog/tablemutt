@@ -521,7 +521,7 @@
 
     TableMutt.prototype.showPage = function (pagenumber) {
         var self = this,
-            lastPage = this.pages.length - 1,
+            lastPage,
             maxPageLinks = this.options.maxPageLinks,
             pageSpan = maxPageLinks - 1,
             minlink,
@@ -534,6 +534,7 @@
         }
 
         if(this.options.showPages === true) {
+            lastPage = this.pages.length - 1;
             maxlink = Math.floor(pagenumber + maxPageLinks/2);
             minlink = maxlink - (pageSpan);
             // adjust for ends of range
