@@ -826,6 +826,12 @@
         // clear selection if row no longer visible
         this._deselectIfMissing();
     };
+
+    TableMutt.prototype.clearTextFilter = function () {
+        var self = this;
+
+        self.filterBar.select("input").property("value", "");
+    };
     
     TableMutt.prototype.renderRows = function () {
         var self = this;
