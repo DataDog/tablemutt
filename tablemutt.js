@@ -66,7 +66,7 @@
             element.headerAttributes = element.headerAttributes || {};
             element.cellAttributes = element.cellAttributes || {};
         });
-        
+
         this._data = null; // data we've loaded, unfiltererd and not paginated
         this._filteredData = null; // data matching user filtering
         this._searchData = null; // search index (string representation of every row)
@@ -132,10 +132,10 @@
         if (this.options.textFilter) {
             this.initTextFilter();
         }
-        
+
         // Create table element
         this.table = this.container.append("table");
-        
+
         // Apply table options
         if (this.options.id !== null) {
             this.table.attr("id", this.options.id);
@@ -143,7 +143,7 @@
         if (this.options.classes.length !== 0) {
             this.table.classed(this.options.classes.join(" "), true);
         }
-        
+
         this.table.classed("tablemutt", true);
         this.theadRow = this.table
             .append("thead")
@@ -167,12 +167,12 @@
             .on('click', function (d, i) {
                 self.toggleSort(self.columns[d], d3.event);
             });
-        
+
         // Create sorting function from options (can't sort yet, no data)
         this.setSortOrder(this.options.sortOrder);
-        
+
         this.tbody = this.table.append("tbody");
-        
+
         // Attach pagination placeholder
         if (this.options.paginateBy) {
             this.paginationParent = this._selectionOrFallback(
@@ -183,7 +183,7 @@
                 .append("ul")
                 .classed("tablemutt pagination", true);
         }
-        
+
         // Attach "showing X of Y" info placeholder
         if (this.options.showInfo !== null) {
             this.infoParent = this._selectionOrFallback(
@@ -218,8 +218,8 @@
                 return stringify(a).localeCompare(stringify(b));
             };
         }
-    }; 
-    
+    };
+
     TableMutt.prototype._makeSorter = function (direction, transform) {
         if (direction === ASCENDING) {
             return function (a, b) {
@@ -238,18 +238,18 @@
                 else { return 0; }
             };
         }
-    }; 
-    
+    };
+
     TableMutt.prototype._makeNoopTransform = function (id) {
-        return function (datum) { 
+        return function (datum) {
             if(datum.hasOwnProperty(id)) {
-                return datum[id]; 
+                return datum[id];
             } else {
                 return null;
             }
         };
-    }; 
-    
+    };
+
     TableMutt.prototype._makeMultiSorter = function () {
         var self = this;
         return function (a, b) {
@@ -261,8 +261,8 @@
             }
             return cmp;
         };
-    }; 
-    
+    };
+
     TableMutt.prototype._defaultFormat = function (transformed, elem, d) {
         if (typeof transformed === "number") {
             if (transformed === Infinity || transformed === -Infinity) {
@@ -275,15 +275,15 @@
         } else {
             return transformed.toString();
         }
-    }; 
-    
+    };
+
     TableMutt.prototype.setSortOrder = function (sortOrder) {
         var self = this;
         self._sorters = [];
-        
+
         // Clear sort order indicators
         self.theadRow.selectAll("th").classed("ascending descending", false);
-        
+
         _.each(sortOrder, function (elem, idx, list) {
             // Push sorting functions onto the _sorters array in order
             var columnId, direction;
@@ -294,7 +294,7 @@
                 columnId = elem;
                 direction = ASCENDING;
             }
-            
+
             // Don't want to unset headers marked on prev iterations
             self.theadRow.selectAll("th:not(.ascending)")
                 .classed("ascending", function (d, i) {
@@ -303,8 +303,8 @@
             self.theadRow.selectAll("th:not(.descending)")
                 .classed("descending", function (d, i) {
                     return (d === columnId) && (!direction);
-                }); 
-            
+                });
+
             var sorter;
             var transform = self.columns[columnId].transform;
             if (self.columns[columnId].hasOwnProperty("compare")) {
@@ -323,8 +323,8 @@
                 self._sorters.push(sorter);
             }
         });
-    }; 
-    
+    };
+
     TableMutt.prototype.toggleSort = function (col, evt) {
         var self = this;
         if (col.sorted === null || col.sorted === DESCENDING) {
@@ -336,8 +336,8 @@
         }
         this.sort();
         this.showPage(0);
-    }; 
-    
+    };
+
     TableMutt.prototype.sort = function () {
         this._filteredData.sort(this._makeMultiSorter());
         this.generateSearchIndex();
@@ -363,10 +363,10 @@
         this.ingestData(rows);
         this.showPage(0);
         this._loadingPlaceholder.remove();
-        
+
         // Unhide the elements we've been generating
         this.container.style("display", "block");
-        
+
         if (this.options.loadCompleteCallback) {
             this.options.loadCompleteCallback();
         }
@@ -395,7 +395,7 @@
     TableMutt.prototype.initPagination = function () {
         var self = this;
         this.pagination.selectAll("li").remove();
-        
+
         // How many pages are there?
         var pages = Math.max(
             Math.ceil(this._filteredData.length / this.options.paginateBy),
@@ -403,14 +403,14 @@
         ); // ensure at least 1 page
 
         this.pages = _.range(pages);
-        
+
         // Add the appropriate controls
-        
+
         //  - Previous Page
         this.pagePrevious = this.pagination.append("li")
             .classed("tablemutt previous navigate", true)
             .html(this.options.previousButtonContent);
-        
+
         if (this.pages.length !== 1) {
             this.pagePrevious
                 .on('click', function (d, i) {
@@ -421,7 +421,7 @@
         } else {
             this.pagePrevious.classed("disabled", true);
         }
-        
+
         //  - Page Numbers
         if (this.options.showPages === true) {
             this.pagination.selectAll("li:not(.navigate)")
@@ -435,7 +435,7 @@
                     return false;
                 });
         }
-        
+
         //  - Next Page
         this.pageNext = this.pagination.append("li")
             .classed("tablemutt next navigate", true)
@@ -457,7 +457,7 @@
                             .html(this.options.skippedPageContent);
             pagelist.insertBefore(this.highSkip[0][0], pagelinks[this.pages.length - 1]);
         }
-        
+
         if (this.pages.length !== 1) {
             this.pageNext
                 .on('click', function (d, i) {
@@ -467,16 +467,16 @@
         } else {
             this.pageNext.classed("disabled", true);
         }
-        
+
         // disable selecting text of the buttons if they're double-clicked
         this.pagination.selectAll("li")
             .on('mousedown', function (d, i) {
                 d3.event.preventDefault();
             });
-    }; 
-    
+    };
+
     TableMutt.prototype._pageToBounds = function (pagenum) {
-        
+
         var from = this.options.paginateBy * this._currentPage;
         var to = Math.min(
             this.options.paginateBy * (this._currentPage + 1),
@@ -505,8 +505,8 @@
     TableMutt.prototype.hidePagination = function () {
         this.pagination.selectAll("li")
             .style("display", "none");
-    }; 
-    
+    };
+
     TableMutt.prototype.showPagination = function () {
         this.pagination.selectAll("li")
             .style("display", null);
@@ -552,7 +552,7 @@
         }
 
         this._currentPage = pagenumber;
-        
+
         var bounds = this._pageToBounds(this._currentPage);
         var to = bounds.to, from = bounds.from;
         this._displayRows = this._filteredData.slice(from, to);
@@ -566,18 +566,18 @@
         });
         // disable Next if last page
         this.pageNext.classed("disabled", this._currentPage === (this.pages.length - 1));
-        
+
         // disable Previous if first page
         this.pagePrevious.classed("disabled", this._currentPage === 0);
         this.updateDisplay();
-    }; 
-    
+    };
+
     TableMutt.prototype.nextPage = function () {
         if (this._currentPage + 1 < this.pages.length) {
             this.choosePage(this._currentPage + 1);
         }
-    }; 
-    
+    };
+
     TableMutt.prototype.prevPage = function () {
         this.deselectRow();
         if (this._currentPage > 0) {
@@ -622,6 +622,9 @@
             this.deselectRow(this.selectedRow);
         }
         this.selectedRow = key;
+        if (self.paginateBy) {
+            self.showPage(self._pageForRow(key));
+        }
         var selected = this.table.select("tr#" + this.selectedRow);
         selected.classed("active", true);
 
@@ -742,8 +745,8 @@
     TableMutt.prototype.initTextFilter = function () {
         var self = this;
         // calling init twice shouldn't give two boxes
-        this.filterBar.selectAll("input").remove(); 
-        
+        this.filterBar.selectAll("input").remove();
+
         this.filterBar.append("input")
             .classed("tablemutt textfilter", true)
             .attr("type", "search")
@@ -757,8 +760,8 @@
                     self.updateTextFilter(d3.event);
                 }, 200);
             });
-    }; 
-    
+    };
+
     TableMutt.prototype.generateSearchIndex = function () {
         var self = this;
         // _searchData -- array of strings to match against
@@ -775,8 +778,8 @@
             // combine for a searchable repr of the row
             return searchables.join(" ").toLocaleLowerCase();
         });
-    }; 
-    
+    };
+
     TableMutt.prototype._applyTextFilter = function (tokens) {
         var self = this;
         var display = [];
@@ -810,7 +813,7 @@
     TableMutt.prototype.updateTextFilter = function () {
         var self = this;
         var tokens = this.getFilterTokens();
-        
+
         this.filterBar.classed("loading", false);
         // If we no longer want to filter anything, restore to initial state
         if (tokens.length === 0) {
@@ -832,7 +835,7 @@
 
         self.filterBar.select("input").property("value", "");
     };
-    
+
     TableMutt.prototype.renderRows = function () {
         var self = this;
 
@@ -865,7 +868,7 @@
         trelems.selectAll("td")
             .data(function (d) {
                 // Transform the object for the row into a sequence of values (1 per column)
-                return self.columnOrder.map(function (colId) { 
+                return self.columnOrder.map(function (colId) {
                     return {transformed: self.columns[colId].transform(d), original: d};
                 });
             })
@@ -896,7 +899,7 @@
                 d3.event.stopPropagation();
             });
     };
-    
+
     TableMutt.prototype.updateDisplay = function () {
         var self = this;
         this.tbody.selectAll("tr").remove();
@@ -919,13 +922,13 @@
         if (this.options.renderCompleteCallback) {
             this.options.renderCompleteCallback();
         }
-    }; 
-    
+    };
+
     TableMutt.prototype.updateInfoText = function () {
         if (!this.options.showInfo) {
             return;
         }
-        
+
         var message = "";
         if (this.options.paginateBy === false) {
             if (this._filteredData.length !== this._data.length) {
@@ -957,9 +960,9 @@
                 message = "Showing " + from + " to " + to + " of " + total + " matching entries.";
             }
         }
-                
+
         this.info.text(message);
     };
-    
+
     window.TableMutt = TableMutt;
 }());
