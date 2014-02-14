@@ -519,7 +519,7 @@
         this.showPage(pagenumber);
     };
 
-    TableMutt.prototype.showPage = function (pagenumber) {
+    TableMutt.prototype.showPage = function (pagenumber, callback) {
         var self = this,
             lastPage,
             maxPageLinks = this.options.maxPageLinks,
@@ -529,7 +529,7 @@
 
         if (!this.options.paginateBy) {
             this._displayRows = this._filteredData;
-            this.updateDisplay();
+            this.updateDisplay(callback);
             return;
         }
 
@@ -569,7 +569,7 @@
 
         // disable Previous if first page
         this.pagePrevious.classed("disabled", this._currentPage === 0);
-        this.updateDisplay();
+        this.updateDisplay(callback);
     };
 
     TableMutt.prototype.nextPage = function () {
@@ -622,16 +622,22 @@
             this.deselectRow(this.selectedRow);
         }
         this.selectedRow = key;
-        if (self.paginateBy) {
-            self.showPage(self._pageForRow(key));
-        }
-        var selected = this.table.select("tr#" + this.selectedRow);
-        selected.classed("active", true);
+        var select_row = function() {
+            var selected = self.table.select("tr#" + self.selectedRow);
+            selected.classed("active", true);
 
-        if (this.options.rowSelectedCallback) {
-            selected.each(function (d, i) {
-                self.options.rowSelectedCallback(this, d);
-            });
+            if (self.options.rowSelectedCallback) {
+                selected.each(function (d, i) {
+                    self.options.rowSelectedCallback(this, d);
+                });
+            }
+        };
+
+        var row_page = self._pageForRow(key);
+        if (self.options.paginateBy && self._currentPage != row_page && row_page !== null) {
+            self.showPage(self._pageForRow(key), select_row());
+        } else {
+            select_row();
         }
     };
 
@@ -900,7 +906,7 @@
             });
     };
 
-    TableMutt.prototype.updateDisplay = function () {
+    TableMutt.prototype.updateDisplay = function (callback) {
         var self = this;
         this.tbody.selectAll("tr").remove();
 
@@ -921,6 +927,9 @@
         this.updateInfoText();
         if (this.options.renderCompleteCallback) {
             this.options.renderCompleteCallback();
+        }
+        if (callback) {
+            callback();
         }
     };
 
