@@ -633,9 +633,9 @@
             }
         };
 
-        var row_page = self._pageForRow(key);
-        if (self.options.paginateBy && self._currentPage != row_page && row_page !== null) {
-            self.showPage(self._pageForRow(key), select_row());
+        var rowPage = self._pageForRow(key);
+        if (self.options.paginateBy && self._currentPage != rowPage && rowPage !== null) {
+            self.showPage(self._pageForRow(key), select_row);
         } else {
             select_row();
         }
