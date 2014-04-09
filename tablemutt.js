@@ -38,8 +38,10 @@
             rowSelectedCallback: null,
             rowDeselectedCallback: null,
             formatRow: null, // receives `d`, the object for that row's data
-            keyFunction: null // create a unique id for a row (required to
+            keyFunction: null, // create a unique id for a row (required to
                               // persist selected row state across updates)
+            skipRowReSelect: null
+
         });
 
         // Enforce minimums
@@ -387,7 +389,7 @@
         }
 
         // if former selected row is still on this page, ensure it's selected
-        if (this.rowKeyToIndex(oldSelectedRow) !== null) {
+        if (this.rowKeyToIndex(oldSelectedRow) !== null || !this.options.skipRowReSelect) {
             this.selectRow(oldSelectedRow);
         }
     };
