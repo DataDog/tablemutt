@@ -389,7 +389,7 @@
         }
 
         // if former selected row is still on this page, ensure it's selected
-        if (this.rowKeyToIndex(oldSelectedRow) !== null || !this.options.skipRowReSelect) {
+        if (this.rowKeyToIndex(oldSelectedRow) !== null && !this.options.skipRowReSelect) {
             this.selectRow(oldSelectedRow);
         }
     };
