@@ -40,8 +40,7 @@
             formatRow: null, // receives `d`, the object for that row's data
             keyFunction: null, // create a unique id for a row (required to
                               // persist selected row state across updates)
-            skipRowReSelect: null
-
+            skipRowReselect: null // skip reselecting previously selected row on updates
         });
 
         // Enforce minimums
@@ -389,7 +388,7 @@
         }
 
         // if former selected row is still on this page, ensure it's selected
-        if (this.rowKeyToIndex(oldSelectedRow) !== null && !this.options.skipRowReSelect) {
+        if (this.rowKeyToIndex(oldSelectedRow) !== null && !this.options.skipRowreSelect) {
             this.selectRow(oldSelectedRow);
         }
     };
