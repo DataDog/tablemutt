@@ -314,7 +314,7 @@
                     if (direction === ASCENDING) {
                         return self.columns[columnId].compare(a, b);
                     } else {
-                        return self.columns[columnId].compare(a, b);
+                        return self.columns[columnId].compare(b, a);
                     }
                 };
                 self._sorters.push(sorter);
