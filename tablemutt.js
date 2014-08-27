@@ -212,11 +212,11 @@
     TableMutt.prototype._makeStringSorter = function (direction, stringify) {
         if (direction === ASCENDING) {
             return function (a, b) {
-                return stringify(b).localeCompare(stringify(a));
+                return stringify(a).localeCompare(stringify(b));
             };
         } else if (direction === DESCENDING) {
             return function (a, b) {
-                return stringify(a).localeCompare(stringify(b));
+                return stringify(b).localeCompare(stringify(a));
             };
         }
     };
