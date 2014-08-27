@@ -226,6 +226,7 @@
             return function (a, b) {
                 var aval = transform(a);
                 var bval = transform(b);
+                if (aval.constructor === String) { return aval.toLocaleLowerCase().localeCompare(bval.toLocaleLowerCase()); }
                 if (aval > bval) { return 1; }
                 else if (aval < bval) { return -1; }
                 else { return 0; }
@@ -234,6 +235,7 @@
             return function (a, b) {
                 var aval = transform(a);
                 var bval = transform(b);
+                if (aval.constructor === String) { return bval.toLocaleLowerCase().localeCompare(aval.toLocaleLowerCase()); }
                 if (aval > bval) { return -1; }
                 else if (aval < bval) { return 1; }
                 else { return 0; }
