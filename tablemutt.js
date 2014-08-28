@@ -228,7 +228,7 @@
             var aval = transform(a);
             var bval = transform(b);
 
-            if (aval.constructor === String) {
+            if (typeof aval === "string") {
                 return (TableMutt.prototype._makeStringSorter(direction, lowerCaseTransform))(aval, bval);
             }
 
