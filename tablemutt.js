@@ -209,36 +209,33 @@
         }
     };
 
-    TableMutt.prototype._makeStringSorter = function (direction, stringify) {
+    TableMutt.prototype._makeStringSorter = function (direction, transform) {
         if (direction === ASCENDING) {
             return function (a, b) {
-                return stringify(b).localeCompare(stringify(a));
+                return transform(a).localeCompare(transform(b));
             };
         } else if (direction === DESCENDING) {
             return function (a, b) {
-                return stringify(a).localeCompare(stringify(b));
+                return transform(b).localeCompare(transform(a));
             };
         }
     };
 
     TableMutt.prototype._makeSorter = function (direction, transform) {
-        if (direction === ASCENDING) {
-            return function (a, b) {
-                var aval = transform(a);
-                var bval = transform(b);
-                if (aval > bval) { return 1; }
-                else if (aval < bval) { return -1; }
-                else { return 0; }
-            };
-        } else if (direction === DESCENDING) {
-            return function (a, b) {
-                var aval = transform(a);
-                var bval = transform(b);
-                if (aval > bval) { return -1; }
-                else if (aval < bval) { return 1; }
-                else { return 0; }
-            };
-        }
+        var lowerCaseTransform = function (x) { return x.toLocaleLowerCase(); };
+        var compVal = (direction === ASCENDING) ? 1 : -1;
+        return function (a, b) {
+            var aval = transform(a);
+            var bval = transform(b);
+
+            if (typeof aval === "string" && typeof bval === "string") {
+                return (TableMutt.prototype._makeStringSorter(direction, lowerCaseTransform))(aval, bval);
+            }
+
+            if (aval > bval) { return compVal; }
+            else if (aval < bval) { return -1*compVal; }
+            else { return 0; }
+        };
     };
 
     TableMutt.prototype._makeNoopTransform = function (id) {
@@ -317,12 +314,11 @@
                         return self.columns[columnId].compare(b, a);
                     }
                 };
-                self._sorters.push(sorter);
             } else {
                 // Default to comparing transformed vals
                 sorter = self._makeSorter(direction, transform);
-                self._sorters.push(sorter);
             }
+            self._sorters.push(sorter);
         });
     };
 
