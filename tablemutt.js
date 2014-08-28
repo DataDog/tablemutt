@@ -222,7 +222,7 @@
     };
 
     TableMutt.prototype._makeSorter = function (direction, transform) {
-        var lowerCaseTransform = function (x) { return x.toLocaleLowerCase(); }
+        var lowerCaseTransform = function (x) { return x.toLocaleLowerCase(); };
         var compVal = (direction === ASCENDING) ? 1 : -1;
         return function (a, b) {
             var aval = transform(a);
