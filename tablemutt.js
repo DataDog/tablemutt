@@ -1,15 +1,18 @@
 (function() {
     var TableMutt = function(selector, columns, options) {
-        var self = this;
         this._selector = selector;
+        var self = this;
         options = options || {};
+        var search_callback;
 
-        if (typeof columns == "undefined" || columns.length === 0) {
+        if (_.isUndefined(columns) || _.isEmpty(columns)) {
             console.error("Cannot initialize with zero columns!");
             return;
         }
 
         this.options = _.defaults(options, {
+            groupBy: [],
+            tableGroups: [],
             paginateBy: 50,
             showPages: true, // show one list item for each page
             maxPageLinks: 10, // max number of page links shown
@@ -43,24 +46,25 @@
             skipRowReselect: null // skip reselecting previously selected row on updates
         });
 
-        // Enforce minimums
+        //Enforce minimums
         this.options.maxPageLinks = Math.max(this.options.maxPageLinks, 4);
 
         // normalize format of cols
         _.each(columns, function (element, index, list) {
+
             // make the id safe for id and class identifiers
             element._id = element.id.replace(/\W/g, '-');
-            if(!(element.hasOwnProperty("name"))) {
+            if(!(_.has(element, "name"))) {
                 element.name = element.id.toLocaleUpperCase().slice(0,1) + element.id.slice(1);
             }
-            if(!(element.hasOwnProperty("transform"))) {
+            if(!(_.has(element, "transform"))) {
                 element.transform = self._makeNoopTransform(element.id);
             }
 
             element.sorted = null; // property for toggling sort
             element.hidden = element.hidden || false;
             element.classes = element.classes || [];
-            if (element.classes.indexOf("column_" + element._id) === -1) {
+            if (_.isEqual(element.classes.indexOf("column_" + element._id), -1)) {
                 element.classes.push("column_" + element._id);
             }
             element._classes = element.classes.join(" ");
@@ -68,7 +72,7 @@
             element.cellAttributes = element.cellAttributes || {};
         });
 
-        this._data = null; // data we've loaded, unfiltererd and not paginated
+        this._data = null; // data we've loaded, unfiltered and not paginated
         this._filteredData = null; // data matching user filtering
         this._searchData = null; // search index (string representation of every row)
 
@@ -101,9 +105,10 @@
     TableMutt.prototype._initializeElements = function () {
         var self = this;
         this.outerContainer = d3.select(this._selector);
-        if (this.outerContainer.length !== 1) {
+        if (!_.isEqual(this.outerContainer.length, 1)) {
             console.error("Selector '", this._selector, "' must match exactly 1 element where we want to add TableMutt");
         }
+
         // Create loading placeholder
         this._loadingPlaceholder = this.outerContainer.append("div")
                                       .html(this.options.loadingContent);
@@ -117,7 +122,7 @@
         this.filterBar = null;
         if (this.options.filterbarContainer) {
             this.filterBar = d3.select(this.options.filterbarContainer);
-            if (this.filterBar.length === 1) {
+            if (_.isEqual(this.filterBar.length, 1)) {
                 this.filterBar.classed("tablemutt filterbar", true);
             } else {
                 console.error("Expected 1 element to match", this.options.filterbarContainer);
@@ -125,7 +130,7 @@
         }
 
         // If we failed to attach to an existing element, add one
-        if (this.filterBar === null) {
+        if (_.isNull(this.filterBar)) {
             this.filterBar = this.container.append("div")
                                  .classed("tablemutt filterbar", true);
         }
@@ -134,14 +139,13 @@
             this.initTextFilter();
         }
 
-        // Create table element
         this.table = this.container.append("table");
 
         // Apply table options
-        if (this.options.id !== null) {
-            this.table.attr("id", this.options.id);
+        if (!_.isNull(this.options.id)) {
+           this.table.attr("id", this.options.id);
         }
-        if (this.options.classes.length !== 0) {
+        if (!_.isEmpty(this.options.classes)) {
             this.table.classed(this.options.classes.join(" "), true);
         }
 
@@ -172,8 +176,6 @@
         // Create sorting function from options (can't sort yet, no data)
         this.setSortOrder(this.options.sortOrder);
 
-        this.tbody = this.table.append("tbody");
-
         // Attach pagination placeholder
         if (this.options.paginateBy) {
             this.paginationParent = this._selectionOrFallback(
@@ -186,19 +188,137 @@
         }
 
         // Attach "showing X of Y" info placeholder
-        if (this.options.showInfo !== null) {
+        if (!_.isNull(this.options.showInfo)) {
             this.infoParent = this._selectionOrFallback(
                 this.options.infoContainer,
                 this.container
             );
+            this.infoParent.select("span").remove();
             this.info = this.infoParent
                 .append("span")
                 .classed("tablemutt info", true);
         }
     };
 
+    // if it's from ingestData then you want to reset this._filteredData, if not don't
+    TableMutt.prototype._findGroups = function(data, ingestData){
+        // when the function is being called from the initializing function ingestData
+        // set the main data variable to contain the sorted version of the data produced below
+        var ingestData = ingestData || null;
+        var group_by = this.options.groupBy;
+        var new_filtered_data = [];
+        if (!_.isEmpty(group_by)){
+            // generate the mapping that will be used to group elements into different tbodies
+            var group_map = _.reduce(data, function(map, host) {
+                if (host.groups[group_by]) {
+                    _.each(host.groups[group_by], function(subgroup) {
+                        map[subgroup] = map[subgroup] || [];
+                        // remove duplicate elements generated due to sorting
+                        if (!_.contains((_.map(map[subgroup], function(val, key){
+                            return val.name;})), host.name)){
+                            map[subgroup].push(host);
+                        }
+                    });
+                } else {
+                    map["other"] = map["other"] || [];
+                    map["other"].push(host);
+                }
+                return map;
+            }, {});
+
+            this.options.tableGroups = Object.keys(group_map).sort();
+
+            // reset global data variable to a sorted list based on found groups
+            if (ingestData){
+                _.each(_.without(this.options.tableGroups, "other"), function(group){
+                    new_filtered_data.push(group_map[group]);
+                });
+                if (!_.isUndefined(group_map["other"])){
+                    new_filtered_data.push(group_map["other"]);
+                }
+                this._filteredData = _.flatten(new_filtered_data);
+            }
+            return group_map;
+        }
+        return {};
+    };
+
+    TableMutt.prototype._escapeSelector = function(selector){
+        var escape_list = ("~ ! @ $ % ^ & * ( ) _ + - = , . / ' ; : ? > < [ ] \ { } | ` #").split(" ");
+        var first = true;
+        var new_selector_list = _.map((selector).split(""), function(key){
+            if (_.contains(_.range(10), parseInt(key))){
+                if (first){ // if selector starts with a number add "id" before it
+                    key = "id" + key;
+                }
+            } else {
+                if (_.contains(escape_list, key)){ // if it contains any nonacceptable characters, escape them
+                    key = "\\" + key;
+                }
+            }
+            first = false;
+            return key;
+
+        });
+        return new_selector_list.join("");
+    };
+
+    TableMutt.prototype._initializeTable = function(){
+        var self = this;
+        var table = this.table;
+        var col_len = this.columnOrder.length;
+        var group_by = this.options.groupBy;
+        var temp_group;
+
+        // Add tbody elements for each separate tag group found
+        function add_tbodies_headings(group){
+            // escape invalid characters for jquery selectors
+            if (_.contains(_.range(10), parseInt(group.slice(0,1)))){
+                temp_group = "id" + group;
+            } else {
+                temp_group = group;
+            }
+            // add appropriate classes and ids to DOM elements
+            var curr_group_name = table.append("tr")
+                .classed("groupName", true)
+                .attr("id", temp_group)
+                .append("td")
+                .attr("colspan", col_len);
+            var curr_group_tbody = table.append("tbody").classed(temp_group, true);
+
+            // Add appropriate group heading
+            if (_.isEqual(group, "user_tag")){
+                curr_group_name.html(group_by + ":");
+            } else if (_.isEqual(group, "other")){
+                curr_group_name.html("Hosts without '" + group_by + "' tag");
+            } else {
+                curr_group_name.html(group_by + ":" + group);
+            }
+        };
+
+        if (!_.isEmpty(group_by)){
+            // add tbodies and headings for each group
+            _.each(_.without(this.options.tableGroups, "other").sort(), function(group){
+                add_tbodies_headings(group);
+            });
+            // ensure other is always the last tbody that is added
+            add_tbodies_headings("other");
+        } else { // if there is no tag to filter by, append just one tbody for all
+            this.tbody = table.append("tbody");
+        }
+    };
+
+    TableMutt.prototype._resetTable = function(group_by){
+        if (_.isEqual(group_by[0], "")){
+            group_by = [];
+        }
+        this.options.groupBy = group_by;
+        this.table.selectAll("tbody").remove();
+        this.table.selectAll(".groupName").remove();
+    }
+
     TableMutt.prototype._selectionOrFallback = function (selector, fallback) {
-        if (selector === null) {
+        if (_.isNull(selector)) {
             return fallback;
         }
         var match = d3.select(selector);
@@ -209,36 +329,33 @@
         }
     };
 
-    TableMutt.prototype._makeStringSorter = function (direction, stringify) {
-        if (direction === ASCENDING) {
+    TableMutt.prototype._makeStringSorter = function (direction, transform) {
+        if (_.isEqual(direction, ASCENDING)) {
             return function (a, b) {
-                return stringify(b).localeCompare(stringify(a));
+                return transform(a).localeCompare(transform(b));
             };
-        } else if (direction === DESCENDING) {
+        } else if (_.isEqual(direction, DESCENDING)) {
             return function (a, b) {
-                return stringify(a).localeCompare(stringify(b));
+                return transform(b).localeCompare(transform(a));
             };
         }
     };
 
     TableMutt.prototype._makeSorter = function (direction, transform) {
-        if (direction === ASCENDING) {
-            return function (a, b) {
-                var aval = transform(a);
-                var bval = transform(b);
-                if (aval > bval) { return 1; }
-                else if (aval < bval) { return -1; }
-                else { return 0; }
-            };
-        } else if (direction === DESCENDING) {
-            return function (a, b) {
-                var aval = transform(a);
-                var bval = transform(b);
-                if (aval > bval) { return -1; }
-                else if (aval < bval) { return 1; }
-                else { return 0; }
-            };
-        }
+        var lowerCaseTransform = function (x) { return x.toLocaleLowerCase(); };
+        var compVal = (_.isEqual(direction, ASCENDING)) ? 1 : -1;
+        return function (a, b) {
+            var aval = transform(a);
+            var bval = transform(b);
+
+            if (_.isString(aval) && _.isString(bval)) {
+                return (TableMutt.prototype._makeStringSorter(direction, lowerCaseTransform))(aval, bval);
+            }
+
+            if (aval > bval) { return compVal; }
+            else if (aval < bval) { return -1*compVal; }
+            else { return 0; }
+        };
     };
 
     TableMutt.prototype._makeNoopTransform = function (id) {
@@ -256,7 +373,7 @@
         return function (a, b) {
             var cmp = 0;
             var idx = 0;
-            while (cmp === 0 && idx < self._sorters.length) {
+            while (_.isEqual(cmp, 0) && idx < self._sorters.length) {
                 cmp = self._sorters[idx](a, b);
                 idx++;
             }
@@ -265,13 +382,13 @@
     };
 
     TableMutt.prototype._defaultFormat = function (transformed, elem, d) {
-        if (typeof transformed === "number") {
-            if (transformed === Infinity || transformed === -Infinity) {
+        if (_.isNumber(transformed)) {
+            if (!_.isFinite(transformed)) {
                 return "n/a";
             } else {
                 return transformed.toFixed(2);
             }
-        } else if (typeof transformed === "undefined" || transformed === null) {
+        } else if (_.isUndefined(transformed) || _.isNull(transformed)) {
             return "n/a";
         } else {
             return transformed.toString();
@@ -288,7 +405,7 @@
         _.each(sortOrder, function (elem, idx, list) {
             // Push sorting functions onto the _sorters array in order
             var columnId, direction;
-            if (elem[0] == "-") {
+            if (_.isEqual(elem[0], "-")) {
                 columnId = elem.slice(1);
                 direction = DESCENDING;
             } else {
@@ -299,11 +416,11 @@
             // Don't want to unset headers marked on prev iterations
             self.theadRow.selectAll("th:not(.ascending)")
                 .classed("ascending", function (d, i) {
-                    return (d === columnId) && direction;
+                    return _.isEqual(d, columnId) && direction;
                 });
             self.theadRow.selectAll("th:not(.descending)")
                 .classed("descending", function (d, i) {
-                    return (d === columnId) && (!direction);
+                    return _.isEqual(d, columnId) && (!direction);
                 });
 
             var sorter;
@@ -311,24 +428,23 @@
             if (self.columns[columnId].hasOwnProperty("compare")) {
                 // Let user override comparison
                 sorter = function (a, b) {
-                    if (direction === ASCENDING) {
+                    if (_.isEqual(direction, ASCENDING)) {
                         return self.columns[columnId].compare(a, b);
                     } else {
                         return self.columns[columnId].compare(b, a);
                     }
                 };
-                self._sorters.push(sorter);
             } else {
                 // Default to comparing transformed vals
                 sorter = self._makeSorter(direction, transform);
-                self._sorters.push(sorter);
             }
+            self._sorters.push(sorter);
         });
     };
 
     TableMutt.prototype.toggleSort = function (col, evt) {
         var self = this;
-        if (col.sorted === null || col.sorted === DESCENDING) {
+        if (_.isNull(col.sorted) || _.isEqual(col.sorted, DESCENDING)) {
             col.sorted = ASCENDING;
             this.setSortOrder([col.id]);
         } else {
@@ -346,9 +462,14 @@
 
     TableMutt.prototype.ingestData = function (rows) {
         var self = this;
-        this._data = rows;
         this._filteredData = rows;
-        this.sort();
+        // _findGroups will sort the data in the order necessary for
+        // accurate pagination
+        this._findGroups(this._filteredData, true);
+        this._data = this._filteredData;
+        if (_.isEmpty(this.options.groupBy)){
+            this.sort();
+        }
         if (this.options.paginateBy) {
             this.initPagination();
         }
@@ -357,11 +478,28 @@
         }
     };
 
-    TableMutt.prototype.isEmpty = function () { return (this._displayRows.length === 0); };
+    // print out the group of each row in the table, useful for debugging
+    TableMutt.prototype.arrayToString = function (arr){
+        var group_by = this.options.groupBy;
+        var array = _.map(arr, function(row){
+            if (!_.isEmpty(group_by)){
+                if (row.groups[group_by]){
+                    return row.groups[group_by][0];
+                } else {
+                    return null;
+                }
+            }
+        });
+        return array;
+    };
+
+    TableMutt.prototype.isEmpty = function () { return _.isEmpty(this._displayRows); };
 
     TableMutt.prototype.load = function (rows) {
         var self = this;
+        search_callback();
         this.ingestData(rows);
+        this._initializeTable();
         this.showPage(0);
         this._loadingPlaceholder.remove();
 
@@ -381,14 +519,14 @@
         if (this.options.textFilter) {
             this._filteredData = this._applyTextFilter(this.getFilterTokens());
         }
-        if (this.options.paginateBy !== false && page < this.pages.length) {
+        if (this.options.paginateBy && page < this.pages.length) {
             this.showPage(page);
         } else {
             this.showPage(0);
         }
 
         // if former selected row is still on this page, ensure it's selected
-        if (this.rowKeyToIndex(oldSelectedRow) !== null && !this.options.skipRowReselect) {
+        if (!_.isNull(this.rowKeyToIndex(oldSelectedRow)) && !this.options.skipRowReselect) {
             this.selectRow(oldSelectedRow);
         }
     };
@@ -402,24 +540,22 @@
             Math.ceil(this._filteredData.length / this.options.paginateBy),
             1
         ); // ensure at least 1 page
-
         this.pages = _.range(pages);
 
         // Add the appropriate controls
-
         //  - Previous Page
         this.pagePrevious = this.pagination.append("li")
             .classed("tablemutt previous navigate", true)
             .html(this.options.previousButtonContent);
 
-        if (this.pages.length !== 1) {
+        if (!_.isEqual(this.pages.length, 1)) {
             this.pagePrevious
                 .on('click', function (d, i) {
                     d3.event.preventDefault();
                     self.prevPage();
                     return false;
                 });
-                $$('.panel').swipeRight(function() {
+            $$('.panel').swipeRight(function() {
                 self.prevPage();
                 return false;
             });
@@ -428,7 +564,7 @@
         }
 
         //  - Page Numbers
-        if (this.options.showPages === true) {
+        if (this.options.showPages) {
             this.pagination.selectAll("li:not(.navigate)")
                 .data(this.pages)
                 .enter()
@@ -446,9 +582,8 @@
             .classed("tablemutt next navigate", true)
             .html(this.options.nextButtonContent);
 
-
         // - Insert the placeholders for skipped pages
-        if(this.options.showPages === true) {
+        if(this.options.showPages) {
             var pagelist = this.pagination[0][0];
             var pagelinks = this.pagination.selectAll('li:not(.navigate)')[0];
 
@@ -463,7 +598,7 @@
             pagelist.insertBefore(this.highSkip[0][0], pagelinks[this.pages.length - 1]);
         }
 
-        if (this.pages.length !== 1) {
+        if (!_.isEqual(this.pages.length, 1)) {
             this.pageNext
                 .on('click', function (d, i) {
                     self.nextPage();
@@ -497,7 +632,7 @@
     TableMutt.prototype._pageForRow = function (key) {
         var self = this;
         var foundRow = _.find(this._filteredData, function (row) {
-            return self.options.keyFunction(row) === key;
+            return _.isEqual(self.options.keyFunction(row), key);
         });
         if (!foundRow) {
             return null;
@@ -535,14 +670,14 @@
             pageSpan = maxPageLinks - 1,
             minlink,
             maxlink;
-
+        var group_by = this.options.groupBy;
         if (!this.options.paginateBy) {
             this._displayRows = this._filteredData;
             this.updateDisplay(callback);
             return;
         }
 
-        if(this.options.showPages === true) {
+        if (this.options.showPages) {
             lastPage = this.pages.length - 1;
             maxlink = Math.floor(pagenumber + maxPageLinks/2);
             minlink = maxlink - (pageSpan);
@@ -566,18 +701,18 @@
         var to = bounds.to, from = bounds.from;
         this._displayRows = this._filteredData.slice(from, to);
         this.pagination.selectAll(".pagenumber").classed("active", function (d, i) {
-            return (d === pagenumber);
+            return _.isEqual(d, pagenumber);
         }).classed('hidden', function(d, i){
-            if(self.options.showPages !== true) {return;}
+            if(!self.options.showPages) {return;}
             // hide if outside of minlink - maxlink range
             // always show first and last page
-            return ( (i < minlink && i !== 0) || (i > maxlink && i !== lastPage));
+            return ( (i < minlink && !_.isEqual(i, 0)) || (i > maxlink && !_.isEqual(i, lastPage)));
         });
         // disable Next if last page
-        this.pageNext.classed("disabled", this._currentPage === (this.pages.length - 1));
+        this.pageNext.classed("disabled", _.isEqual(this._currentPage, (this.pages.length - 1)));
 
         // disable Previous if first page
-        this.pagePrevious.classed("disabled", this._currentPage === 0);
+        this.pagePrevious.classed("disabled", _.isEqual(this._currentPage, 0));
         this.updateDisplay(callback);
     };
 
@@ -599,7 +734,7 @@
         var currentIdx;
         if (!key) { return null; }
         _.find(this._displayRows, function (row, idx) {
-            if (self.options.keyFunction(row) == key) {
+            if (_.isEqual(self.options.keyFunction(row), key)) {
                 currentIdx = idx;
                 return true;
             } else {
@@ -618,7 +753,7 @@
     };
 
     TableMutt.prototype.toggleRow = function (key) {
-        if (key == this.selectedRow) {
+        if (_.isEqual(key, this.selectedRow)) {
             this.deselectRow(null);
         } else {
             this.selectRow(key);
@@ -627,7 +762,7 @@
 
     TableMutt.prototype.selectRow = function (key) {
         var self = this;
-        if (this.selectedRow && this.selectedRow !== key) {
+        if (this.selectedRow && !_.isEqual(this.selectedRow, key)) {
             this.deselectRow(this.selectedRow);
         }
         this.selectedRow = key;
@@ -643,7 +778,7 @@
         };
 
         var rowPage = self._pageForRow(key);
-        if (self.options.paginateBy && self._currentPage != rowPage && rowPage !== null) {
+        if (self.options.paginateBy && !_.isEqual(self._currentPage, rowPage) && !_.isNull(rowPage)) {
             self.showPage(self._pageForRow(key), select_row);
         } else {
             select_row();
@@ -653,14 +788,14 @@
     TableMutt.prototype._deselectIfMissing = function () {
         // if row disappears in an update or pagination change, we
         // want to deselect it
-        if (this.rowKeyToIndex(this.selectedRow) === null) {
+        if (_.isNull(this.rowKeyToIndex(this.selectedRow))) {
             this.deselectRow();
         }
     };
 
     TableMutt.prototype.deselectRow = function (nextSelectionKey) {
         var self = this;
-        if (this.selectedRow === null) {
+        if (_.isNull(this.selectedRow)) {
             return;
         }
         var selected = this.table.select("tr#" + this.selectedRow);
@@ -683,7 +818,7 @@
     TableMutt.prototype.selectNextRow = function () {
         var self = this;
         // don't try to do anything if we aren't showing any data rows
-        if (this._displayRows.length === 0) {
+        if (_.isEmpty(this._displayRows)) {
             return;
         }
 
@@ -708,7 +843,7 @@
                 this.showPage(this._currentPage + 1);
             } else {
                 // if no, are we on page 0?
-                if (this._currentPage !== 0) {
+                if (!_.isEqual(this._currentPage, 0)) {
                     // if no, switch to page 0 and then select first
                     this.showPage(0);
                 }
@@ -722,7 +857,7 @@
     TableMutt.prototype.selectPreviousRow = function () {
         var self = this;
         // don't try to do anything if we aren't showing any data rows
-        if (this._displayRows.length === 0) {
+        if (_.isEmpty(this._displayRows)) {
             return;
         }
 
@@ -740,6 +875,7 @@
         if (currentIdx - 1 >= 0) {
             // select prev row if possible
             toSelect = this._displayRows[currentIdx - 1];
+
             this.selectRow(this.options.keyFunction(toSelect));
         } else {
             if (this.options.paginateBy && this.pages.length > 1) {
@@ -762,22 +898,25 @@
         // calling init twice shouldn't give two boxes
         this.filterBar.selectAll("input").remove();
 
-        this.filterBar.append("input")
-            .classed("tablemutt textfilter", true)
-            .attr("type", "search")
-            .attr("placeholder", this.options.filterbarPlaceholderText)
-            .on("input", function (d, i) {
+        search_callback = function () {
                 self.filterBar.classed("loading", true);
-                if (self._searchTimeout !== null) {
+                if (!_.isNull(self._searchTimeout)) {
                     window.clearTimeout(self._searchTimeout);
                 }
                 self._searchTimeout = window.setTimeout(function () {
                     self.updateTextFilter(d3.event);
                 }, 200);
-            });
+            };
+
+        this.filterBar.append("input")
+            .classed("tablemutt textfilter", true)
+            .attr("type", "search")
+            .attr("placeholder", this.options.filterbarPlaceholderText)
+            .on("input", search_callback);
     };
 
     TableMutt.prototype.generateSearchIndex = function () {
+
         var self = this;
         // _searchData -- array of strings to match against
         this._searchData = _.map(self._data, function (d) {
@@ -801,7 +940,7 @@
         _.each(this._data, function (elem, idx, list) {
             var match = true;
             _.each(tokens, function (token) {
-                match = match && (self._searchData[idx].indexOf(token) !== -1) ? true : false;
+                match = match && !_.isEqual(self._searchData[idx].indexOf(token), -1) ? true : false;
             });
             if (match) {
                 display.push(elem);
@@ -818,7 +957,7 @@
 
         var tokens = [];
         _.each(search.split(" "), function (elem) {
-            if (elem.trim().length !== 0) {
+            if (!_.isEmpty(elem.trim())) {
                 tokens.push(elem.toLocaleLowerCase());
             }
         });
@@ -831,7 +970,7 @@
 
         this.filterBar.classed("loading", false);
         // If we no longer want to filter anything, restore to initial state
-        if (tokens.length === 0) {
+        if (_.isEmpty(tokens)){
             this._filteredData = this._data;
             this.setSortOrder(this.options.sortOrder);
         } else {
@@ -853,84 +992,136 @@
 
     TableMutt.prototype.renderRows = function () {
         var self = this;
-
         var trs = "";
-        var onetr = "<tr></tr>\n";
-        for (var i = 0; i < this._displayRows.length; i++) {
-            trs += onetr;
-        }
-        this.tbody.html(trs);
-        var trelems = this.tbody.selectAll("tr");
-        trelems
-            .datum(function (prevdat, i) {
-                return self._displayRows[i];
-            });
-        if (this.options.keyFunction) {
-            trelems
-                .attr("id", function (d) {
-                    return self.options.keyFunction(d);
-                })
-                .on('click', function (d, i) {
-                    self.toggleRow(self.options.keyFunction(d));
-                });
-        }
-        if (this.options.formatRow !== null) {
-            trelems.each(function (d, i) {
-                self.options.formatRow(d, this);
-            });
-        }
+        var group_by = this.options.groupBy;
 
-        trelems.selectAll("td")
-            .data(function (d) {
-                // Transform the object for the row into a sequence of values (1 per column)
-                return self.columnOrder.map(function (colId) {
-                    return {transformed: self.columns[colId].transform(d), original: d};
+        function add_trelems_data(trelems, element_list){
+            trelems
+                .datum(function (prevdat, i) {
+                    return element_list[i];
                 });
-            })
-            .enter()
-            .append("td")
-            .each(function (d, i) {
-                var column = self.columns[self.columnOrder[i]];
-                var d3elem = d3.select(this);
-                d3elem.classed(column._classes, true);
-                if (column.hasOwnProperty("format")) {
-                    var formatted = column.format(d.transformed, this, d.original);
-                    if (typeof formatted === "string") {
-                        d3elem.html(formatted);
+
+            if (self.options.keyFunction) {
+                trelems
+                    .attr("id", function (d) {
+                        return self.options.keyFunction(d);
+                    })
+                    .on('click', function (d, i) {
+                        self.toggleRow(self.options.keyFunction(d));
+                    });
+            }
+
+            if (!_.isNull(self.options.formatRow)) {
+                trelems.each(function (d, i) {
+                    self.options.formatRow(d, this);
+                });
+            }
+
+            trelems.selectAll("td")
+                .data(function (d) {
+                    // Transform the object for the row into a sequence of values (1 per column)
+                    return self.columnOrder.map(function (colId) {
+                        return {transformed: self.columns[colId].transform(d), original: d};
+                    });
+                })
+                .enter()
+                .append("td")
+                .each(function (d, i) {
+                    var column = self.columns[self.columnOrder[i]];
+                    var d3elem = d3.select(this);
+                    d3elem.classed(column._classes, true);
+                    if (_.has(column, "format")) {
+                        var formatted = column.format(d.transformed, this, d.original);
+                        if (_.isString(formatted)) {
+                            d3elem.html(formatted);
+                        }
+                        // otherwise we assume the formatter manipulated the DOM
+                        // itself.
+                    } else {
+                        d3elem.html(self._defaultFormat(d.transformed, this, d.original));
                     }
-                    // otherwise we assume the formatter manipulated the DOM
-                    // itself.
-                } else {
-                    d3elem.html(self._defaultFormat(d.transformed, this, d.original));
+                });
+
+            // to prevent the click-to-select-row behavior causing unexpected
+            // behavior when clicking a link, attach a handler that stops
+            // propagation
+            trelems
+                .selectAll("a[href]")
+                .on("click", function (d, i) {
+                    d3.event.stopPropagation();
+            });
+        };
+        if (!_.isEmpty(group_by)){ // separate data rows by tag group
+            var table = this.table;
+            // find the relevant groups for the data needing displaying
+            var groups = this._findGroups(self._displayRows);
+            _.each(groups, function(rows, group_name){
+                // find each tbody/heading corresponding to a particular group and add rows to it
+                var selector = self._escapeSelector(group_name);
+                var id_selector = "#" + selector;
+                var class_selector = "." + selector;
+                trs = _.range(rows.length)
+                    .map(function(){ return "<tr></tr>"; })
+                    .join('\n');
+                var group_heading = d3.select("tr" + id_selector);
+                var group_tbody = d3.select("tbody" +  class_selector);
+                group_tbody.html(trs);
+                var trelems = group_tbody.selectAll("tr");
+                add_trelems_data(trelems, rows);
+                // show the group tbody and heading
+                group_tbody.style("display", null);
+                group_heading.style("display", null);
+            });
+
+            //hide all tbodies and headings with no elements
+            var tbodies = table.selectAll("tbody");
+            _.each(tbodies[0], function(tbody){
+                if (_.isEqual($(tbody).children().length, 0)) {
+                $(tbody).css("display", "none");
+                    d3.select("#" + self._escapeSelector($(tbody).attr('class'))).style("display", "none");
                 }
             });
-
-        // to prevent the click-to-select-row behavior causing unexpected
-        // behavior when clicking a link, attach a handler that stops
-        // propagation
-        trelems
-            .selectAll("a[href]")
-            .on("click", function (d, i) {
-                d3.event.stopPropagation();
-            });
+        } else { // if no grouping tag is selected, add all the rows to one tbody
+            d3.select("tbody").style("display", null);
+            trs = _.range(this._displayRows.length)
+                .map(function(){ return "<tr></tr>"; })
+                .join('\n');
+            this.tbody.html(trs);
+            var trelems = this.tbody.selectAll("tr");
+            add_trelems_data(trelems, self._displayRows);
+        }
     };
 
     TableMutt.prototype.updateDisplay = function (callback) {
         var self = this;
-        this.tbody.selectAll("tr").remove();
+        var no_rows_message = this.table.select(".no_rows_message")[0][0];
+        this.table.selectAll("tbody").selectAll("tr").remove();
 
-        if (this._filteredData.length === 0) {
-            var messageTd = this.tbody.append("tr")
-                .append("td")
-                .attr("colspan", this.columnOrder.length)
-                .classed("no_rows_message", true);
-            if (this._data.length === 0) {
-                messageTd.html(this.options.emptyContent);
-            } else {
-                messageTd.html(this.options.filterEmptyContent);
+        if (_.isEmpty(this._filteredData)) {
+
+            // hide all existing groups
+            this.table.selectAll("tbody").style("display", "none");
+            this.table.selectAll(".groupName").style("display", "none");
+
+            // check that the message isn't already there
+            if (!no_rows_message){
+                var messageTd = this.table.append("tr")
+                    .append("td")
+                    .attr("colspan", this.columnOrder.length)
+                    .classed("no_rows_message", true);
+                if (_.isEmpty(this._data)) {
+                    messageTd.html(this.options.emptyContent);
+                } else {
+                    messageTd.html(this.options.filterEmptyContent);
+                }
             }
         } else {
+            if (no_rows_message){
+                no_rows_message.remove();
+            }
+            this.table.selectAll("tbody").style("display", null);
             this.renderRows();
+
         }
 
         this.updateInfoText();
@@ -946,10 +1137,9 @@
         if (!this.options.showInfo) {
             return;
         }
-
         var message = "";
-        if (this.options.paginateBy === false) {
-            if (this._filteredData.length !== this._data.length) {
+        if (!this.options.paginateBy) {
+            if (!_.isEqual(this._filteredData.length, this._data.length)) {
                 message = "Showing " + this._filteredData.length + " of " + this._data.length + " entries";
             } else {
                 message = "Showing all " + this._data.length + " entries";
@@ -958,29 +1148,29 @@
             var bounds = this._pageToBounds(this._currentPage);
             var from = bounds.from + 1, to = bounds.to;
             var total = this._filteredData.length;
-            if (this._filteredData.length === 0) {
+            if (_.isEmpty(this._filteredData)) {
                 message = "";
-            } else if (from === 1 && to === this._data.length) {
-                if (to === 1) {
+            } else if (_.isEqual(from, 1) && _.isEqual(to, this._data.length)) {
+                if (_.isEqual(to, 1)) {
                     message = "Showing the only entry.";
                 } else {
                     message = "Showing all " + total + " entries.";
                 }
-            } else if (from === 1 && to === this._filteredData.length) {
-                if (to === 1) {
+            } else if (_.isEqual(from, 1) && _.isEqual(to, this._filteredData.length)) {
+                if (_.isEqual(to, 1)) {
                     message = "Showing the only matching entry.";
                 } else {
                     message = "Showing all " + total + " matching entries.";
                 }
-            } else if (this._filteredData.length === this._data.length) {
+            } else if (_.isEqual(this._filteredData.length, this._data.length)) {
                 message = "Showing " + from + " to " + to + " of " + total + " entries.";
             } else {
                 message = "Showing " + from + " to " + to + " of " + total + " matching entries.";
             }
         }
-
         this.info.text(message);
     };
+
 
     window.TableMutt = TableMutt;
 }());
