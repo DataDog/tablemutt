@@ -498,7 +498,7 @@
 
     TableMutt.prototype.load = function (rows) {
         var self = this;
-        search_callback();
+        this.search_callback();
         this.ingestData(rows);
         this._initializeTable();
         this.showPage(0);
@@ -899,7 +899,7 @@
         // calling init twice shouldn't give two boxes
         this.filterBar.selectAll("input").remove();
 
-        search_callback = function () {
+        this.search_callback = function () {
                 self.filterBar.classed("loading", true);
                 if (!_.isNull(self._searchTimeout)) {
                     window.clearTimeout(self._searchTimeout);
@@ -913,7 +913,7 @@
             .classed("tablemutt textfilter", true)
             .attr("type", "search")
             .attr("placeholder", this.options.filterbarPlaceholderText)
-            .on("input", search_callback);
+            .on("input", this.search_callback);
     };
 
     TableMutt.prototype.generateSearchIndex = function () {
