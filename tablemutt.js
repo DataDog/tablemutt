@@ -212,6 +212,7 @@
             var group_map = _.reduce(data, function(map, host) {
                 if (host.groups[group_by]) {
                     _.each(host.groups[group_by], function(subgroup) {
+                        subgroup = (subgroup === "") ? "other" : subgroup;
                         map[subgroup] = map[subgroup] || [];
                         // remove duplicate elements generated due to sorting
                         if (!_.contains((_.map(map[subgroup], function(val, key){
