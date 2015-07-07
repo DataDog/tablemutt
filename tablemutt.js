@@ -204,7 +204,7 @@
     TableMutt.prototype._findGroups = function(data, ingestData){
         // when the function is being called from the initializing function ingestData
         // set the main data variable to contain the sorted version of the data produced below
-        var ingestData = ingestData || null;
+        ingestData = ingestData || null;
         var group_by = this.options.groupBy;
         var new_filtered_data = [];
         if (!_.isEmpty(group_by)){
@@ -220,8 +220,8 @@
                         }
                     });
                 } else {
-                    map["other"] = map["other"] || [];
-                    map["other"].push(host);
+                    map.other = map.other || [];
+                    map.other.push(host);
                 }
                 return map;
             }, {});
@@ -233,8 +233,8 @@
                 _.each(_.without(this.options.tableGroups, "other"), function(group){
                     new_filtered_data.push(group_map[group]);
                 });
-                if (!_.isUndefined(group_map["other"])){
-                    new_filtered_data.push(group_map["other"]);
+                if (!_.isUndefined(group_map.other)){
+                    new_filtered_data.push(group_map.other);
                 }
                 this._filteredData = _.flatten(new_filtered_data);
             }
@@ -294,7 +294,7 @@
             } else {
                 curr_group_name.html(group_by + ":" + group);
             }
-        };
+        }
 
         if (!_.isEmpty(group_by)){
             // add tbodies and headings for each group
@@ -315,7 +315,7 @@
         this.options.groupBy = group_by;
         this.table.selectAll("tbody").remove();
         this.table.selectAll(".groupName").remove();
-    }
+    };
 
     TableMutt.prototype._selectionOrFallback = function (selector, fallback) {
         if (_.isNull(selector)) {
@@ -1050,7 +1050,7 @@
                 .on("click", function (d, i) {
                     d3.event.stopPropagation();
             });
-        };
+        }
         if (!_.isEmpty(group_by)){ // separate data rows by tag group
             var table = this.table;
             // find the relevant groups for the data needing displaying
