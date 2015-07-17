@@ -909,7 +909,9 @@
                 }, 200);
             };
 
-        this.filterBar.append("input")
+        this.filterBar.append("div")
+            .classed("tablemutt textfilter_container", true)
+            .append("input")
             .classed("tablemutt textfilter", true)
             .attr("type", "search")
             .attr("placeholder", this.options.filterbarPlaceholderText)
