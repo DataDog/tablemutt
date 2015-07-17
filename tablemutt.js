@@ -913,7 +913,7 @@
             .classed("tablemutt textfilter_container", true)
             .append("input")
             .classed("tablemutt textfilter", true)
-            .attr("type", "search")
+            .attr("type", "text")
             .attr("placeholder", this.options.filterbarPlaceholderText)
             .on("input", this.search_callback);
     };
