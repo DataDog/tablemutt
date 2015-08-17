@@ -556,10 +556,6 @@
                     self.prevPage();
                     return false;
                 });
-            $$('.panel').swipeRight(function() {
-                self.prevPage();
-                return false;
-            });
         } else {
             this.pagePrevious.classed("disabled", true);
         }
@@ -605,10 +601,6 @@
                     self.nextPage();
                     return false;
                 });
-            $$('.panel').swipeLeft(function() {
-                self.nextPage();
-                return false;
-            });
         } else {
             this.pageNext.classed("disabled", true);
         }
